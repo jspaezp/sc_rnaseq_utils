@@ -1,13 +1,35 @@
 
 # My little collection of tools to make life nicer with single cell rna seq.
 
-## Current tools
-
 ### gp_3dscat.bash
 
-short for ... gnuplot 3d scatterplot
-Small bash script that generates a gif from a slightly modified csv file with a last collumn with the color to be used
+Short for ... gnuplot 3d scatterplot
 
+Small bash script that generates a gif from a slightly modified csv file
+
+The csv file should have 4 columns, first 3 being x y and z axes and a last collumn with the color to be used on the points.
+
+#### Dependencies
+
+It depends in:
+1. Gnuplot
+2. Imagemagick
+3. ffmpeg
+
+
+#### Installation
+
+The script can be set as executable and in you PATH so it can be called system wide.
+
+Nonetheless, since it is so small, I would advise you to just copy it and call it directly with bash for its usage.
+
+```{bash}
+wget https://raw.githubusercontent.com/jspaezp/sc_rnaseq_utils/master/gp_3dscat/gp_3dscat.bash
+```
+
+#### Usage
+
+If you had a file that looked more or less like this ....
 
 ```{bash}
 $ head foo2.dat
@@ -23,6 +45,7 @@ $ head foo2.dat
 8.9273,-18.918,-2.975641,3
 ```
 
+You would run this
 
 ```{bash}
 $ gp_3dscat.bash foo2.dat
@@ -38,8 +61,7 @@ Writting final GIF as: /home/jspaezp/tmp/foo2.dat.gif
 Cleaning temporary Directory
 ```
 
+To get this ...
+
 ![Sample output](./media/sc3dplot.gif)
-
-
-
 
