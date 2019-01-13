@@ -73,8 +73,22 @@ gnuplot -p -e "${FULLCOMMAND}"
 
 echo "Found $(ls -1 *.png | wc -l) PNG Files"
 
-echo "Writting final GIF as: ${DATAPATH}.gif"
-convert -loop 0 *.png "${DATAPATH}.gif"
+if [[ $(which convert) ]]
+then
+  echo "Writting final GIF as: ${DATAPATH}.gif"
+  convert -loop 0 *.png "${DATAPATH}.gif"
+else
+  echo "Unable to find 'convert', skipping the generation of the gif file"
+fi
+
+if [[ $(which ffmpeg) ]]
+then
+  echo "Writting final MP4 as: ${DATAPATH}.mp4"
+  ffmpeg -framerate 20 -pattern_type glob -i '*.png'  "${DATAPATH}.mp4"
+else
+  echo "Unable to find 'ffmpeg', skipping the generation of the mp4 file"
+fi
+
 
 echo "Cleaning temporary Directory"
 rm -rf ${TEMPDIR}
