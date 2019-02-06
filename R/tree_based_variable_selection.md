@@ -99,7 +99,7 @@ varimp(tree)
 
 ```
 ##      PPBP      GNLY       LTB 
-## 3.5174292 1.0646640 0.6986878
+## 4.4146488 0.9230138 0.6008872
 ```
 
 ```r
@@ -156,7 +156,7 @@ forest
 ## Target node size:                 1 
 ## Variable importance mode:         impurity_corrected 
 ## Splitrule:                        gini 
-## OOB prediction error:             18.75 %
+## OOB prediction error:             13.75 %
 ```
 
 ```r
@@ -179,12 +179,12 @@ head(df_importances[order(df_importances[, "importance"]),] )
 
 ```
 ##         importance pvalue
-## PIK3IP1  0.3457385      0
-## S100B    0.3569180      0
-## ACRBP    0.3860325      0
-## PTGDR    0.4733949      0
-## S1PR4    0.5242100      0
-## TSC22D1  0.5660943      0
+## CCR7     0.2045919      0
+## S1PR4    0.3449155      0
+## S100B    0.3828387      0
+## KHDRBS1  0.4125568      0
+## TSC22D1  0.4265032      0
+## PCMT1    0.4959871      0
 ```
 
 ```r
@@ -192,7 +192,7 @@ dim(df_importances)
 ```
 
 ```
-## [1] 17  2
+## [1] 20  2
 ```
 
 
@@ -228,7 +228,7 @@ forest
 ## Target node size:                 1 
 ## Variable importance mode:         impurity_corrected 
 ## Splitrule:                        gini 
-## OOB prediction error:             12.50 %
+## OOB prediction error:             11.25 %
 ```
 
 ```r
@@ -251,12 +251,12 @@ head(df_importances[order(df_importances[, "importance"]),] )
 
 ```
 ##         importance pvalue
-## S100B     9.423453      0
-## PIK3IP1  10.398379      0
-## KHDRBS1  11.380939      0
-## VDAC3    12.042864      0
-## TSC22D1  13.374409      0
-## S1PR4    13.656005      0
+## ACRBP     7.027651      0
+## S100B     8.781159      0
+## S1PR4    11.097199      0
+## PIK3IP1  16.036430      0
+## PTGDR    17.903747      0
+## TSC22D1  18.037855      0
 ```
 
 ```r
@@ -264,7 +264,7 @@ dim(df_importances)
 ```
 
 ```
-## [1] 19  2
+## [1] 16  2
 ```
 
 Note that due to the nature of the random forest, it cannot be plotted ...
@@ -391,12 +391,12 @@ lapply(tmp, summary)
 ## 
 ## $df_importances
 ##    importance           pvalue          marker         
-##  Min.   :-0.17503   Min.   :0.0000   Length:31         
-##  1st Qu.: 0.02163   1st Qu.:0.0000   Class :character  
-##  Median : 0.19782   Median :0.0000   Mode  :character  
-##  Mean   : 0.38617   Mean   :0.2258                     
-##  3rd Qu.: 0.57540   3rd Qu.:0.4000                     
-##  Max.   : 1.82855   Max.   :1.0000
+##  Min.   :-0.41368   Min.   :0.0000   Length:31         
+##  1st Qu.: 0.04375   1st Qu.:0.0000   Class :character  
+##  Median : 0.19959   Median :0.1000   Mode  :character  
+##  Mean   : 0.38715   Mean   :0.1935                     
+##  3rd Qu.: 0.54979   3rd Qu.:0.1500                     
+##  Max.   : 1.95514   Max.   :1.0000
 ```
 
 ## Now applying that function to all the clusters
@@ -469,4 +469,151 @@ for (i in classif_info) {
 ```
 
 ![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-1.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-2.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-3.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-4.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-5.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-6.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-7.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-8.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-9.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-10.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-11.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-12.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-13.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-14.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-15.png)<!-- -->![](tree_based_variable_selection_files/figure-html/unnamed-chunk-10-16.png)<!-- -->
+
+
+# Adding cross validation ...
+
+Note how this is A LOT more computationlly expensive than running single models
+
+
+
+```r
+require(caret)
+```
+
+```
+## Loading required package: caret
+```
+
+```
+## Loading required package: lattice
+```
+
+```r
+tc <- caret::trainControl(method = "CV", number = 5)
+models <- caret::train(ident ~ ., data = pbmc_df, metod = "ranger", trControl = tc)
+models
+```
+
+```
+## Random Forest 
+## 
+## 80 samples
+## 31 predictors
+##  4 classes: '0', '1', '2', '3' 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (5 fold) 
+## Summary of sample sizes: 64, 65, 63, 64, 64 
+## Resampling results across tuning parameters:
+## 
+##   mtry  Accuracy   Kappa    
+##    2    0.8631373  0.7996033
+##   16    0.8239706  0.7492674
+##   31    0.8373039  0.7678965
+## 
+## Accuracy was used to select the optimal model using the largest value.
+## The final value used for the model was mtry = 2.
+```
+
+```r
+varImp(models)
+```
+
+```
+## rf variable importance
+## 
+##   only 20 most important variables shown (out of 31)
+## 
+##           Overall
+## LTB       100.000
+## GNLY       63.704
+## SRSF7      59.118
+## TALDO1     53.050
+## ARHGDIA    51.556
+## HIST1H2AC  44.919
+## PPBP       44.283
+## LYAR       40.402
+## PF4        36.014
+## CA2        29.781
+## PIK3IP1    24.149
+## PCMT1      23.246
+## S1PR4      20.039
+## COPS6      15.908
+## PTGDR      15.052
+## KHDRBS1    14.638
+## TSC22D1    13.950
+## VDAC3      13.772
+## ACRBP      12.597
+## S100B       8.847
+```
+
+```r
+require(caret)
+tc <- caret::trainControl(method = "CV", number = 5)
+models <- caret::train(ident ~ ., method = "glmnet", data = pbmc_df, trControl = tc)
+models
+```
+
+```
+## glmnet 
+## 
+## 80 samples
+## 31 predictors
+##  4 classes: '0', '1', '2', '3' 
+## 
+## No pre-processing
+## Resampling: Cross-Validated (5 fold) 
+## Summary of sample sizes: 65, 64, 63, 64, 64 
+## Resampling results across tuning parameters:
+## 
+##   alpha  lambda        Accuracy   Kappa    
+##   0.10   0.0007270035  0.8864706  0.8372946
+##   0.10   0.0072700350  0.9107353  0.8708284
+##   0.10   0.0727003496  0.9240686  0.8906909
+##   0.55   0.0007270035  0.8622059  0.8014420
+##   0.55   0.0072700350  0.8857353  0.8352728
+##   0.55   0.0727003496  0.8865686  0.8368542
+##   1.00   0.0007270035  0.8497059  0.7855966
+##   1.00   0.0072700350  0.8489706  0.7847342
+##   1.00   0.0727003496  0.8623039  0.8015515
+## 
+## Accuracy was used to select the optimal model using the largest value.
+## The final values used for the model were alpha = 0.1 and lambda
+##  = 0.07270035.
+```
+
+```r
+varImp(models)
+```
+
+```
+## glmnet variable importance
+## 
+##   variables are sorted by maximum importance across the classes
+##   only 20 most important variables shown (out of 31)
+## 
+##                 0      1       2       3
+## GNLY      37.0037 30.784 100.000  0.2887
+## ZNF330    22.0835 86.581  16.131  0.0000
+## IL17RA    30.3852 80.142   0.000  0.0000
+## PTGDR      7.2694 34.539  79.819  0.0000
+## HIST1H2AC  0.0000 45.180   0.000 79.7686
+## ACSM3     78.7536 39.211   0.000  0.0000
+## ARHGDIA   78.3957 51.222  33.184  6.0104
+## LTB       76.6076 29.458   6.255 11.1912
+## LYAR      55.4808 75.210  15.868  0.0000
+## TSC22D1    0.0000 34.689   0.000 74.8614
+## S100B      0.0000 39.763  65.015  0.0000
+## PIK3IP1   64.7260 34.383   0.000  0.0000
+## SRSF7     59.3003 20.445   0.000  9.1150
+## PPBP       4.4759 27.283   0.000 58.6655
+## PCMT1      0.4061 11.322  58.154  2.4732
+## TALDO1    53.1823 54.580  14.477 13.0801
+## PF4        7.9870  9.510   0.000 52.7984
+## CA2        5.6007  8.004   0.000 50.2477
+## ACRBP      0.0000 30.323   0.000 49.0650
+## S1PR4     24.6467  0.000  47.829  4.6578
+```
+
 

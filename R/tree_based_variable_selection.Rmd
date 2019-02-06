@@ -244,3 +244,26 @@ for (i in classif_info) {
 }
 ```
 
+
+# Adding cross validation ...
+
+Note how this is A LOT more computationlly expensive than running single models
+
+
+```{r}
+require(caret)
+tc <- caret::trainControl(method = "CV", number = 5)
+models <- caret::train(ident ~ ., data = pbmc_df, metod = "ranger", trControl = tc)
+models
+
+varImp(models)
+
+require(caret)
+tc <- caret::trainControl(method = "CV", number = 5)
+models <- caret::train(ident ~ ., method = "glmnet", data = pbmc_df, trControl = tc)
+models
+
+varImp(models)
+```
+
+
