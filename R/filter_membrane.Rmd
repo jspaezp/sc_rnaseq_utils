@@ -1,0 +1,53 @@
+---
+title: "Membrane Protein Markers"
+output: 
+  html_document: 
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r message=FALSE}
+require(Seurat)
+require(dplyr)
+require(org.Hs.eg.db)
+```
+
+# Relies on having done the standard seurat workflow before `FindAllMarkers`
+
+```{r}
+
+data("pbmc_small")
+print(head(pbmc_small@var.genes))
+
+columns(org.Hs.eg.db)
+
+
+# "GO:0009986" means cell surface 
+# "GO:0005886" means plasma membrane
+# "GO:0044459" means plasma membrane part
+
+surface_annotated <- AnnotationDbi::select(
+    org.Hs.eg.db,
+    keys = pbmc_small@var.genes,
+    columns = "GO",
+    keytype = "ALIAS") %>% 
+    filter(GO %in% c("GO:0009986", "GO:0005886", "GO:0044459"))
+
+head(surface_annotated)
+
+
+pbmc.markers <- FindAllMarkers(
+    object = pbmc_small, genes.use = unique(surface_annotated$ALIAS), 
+    only.pos = TRUE,
+    min.pct = 0.25, 
+    thresh.use = 1, 
+    print.bar = FALSE)
+
+
+pbmc.markers
+```
+
