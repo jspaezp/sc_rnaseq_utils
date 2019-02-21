@@ -1,5 +1,6 @@
 ---
 title: "Tree Based Variable Selection"
+author: "J. Sebastian Paez"
 output: 
   html_document: 
     keep_md: yes
@@ -12,9 +13,13 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r message=FALSE, warning=FALSE, paged.print=FALSE}
 require(Seurat)
+require(ggplot2)
+require(plyr)
 require(dplyr)
 require(ranger)
 require(partykit)
+require(caret)
+
 
 data("pbmc_small")
 ```
@@ -43,11 +48,11 @@ data("pbmc_small")
 #' GAACCTGATGAACC 7.143118    0    0
 #' @importFrom Seurat FetchData GetIdent
 as.data.frame.Seurat <- function(seurat) {
-    tmp <- Seurat::FetchData(seurat, vars.all = seurat@var.genes) 
-    tmp <-  as.data.frame(tmp, stringsAsFactors = FALSE) 
-       
-    
-    tmp$ident <- Seurat::GetIdent(seurat, uniq = FALSE, cells.use = rownames(tmp))
+    tmp <- Seurat::FetchData(seurat, vars.all = seurat@var.genes)
+    tmp <-  as.data.frame(tmp, stringsAsFactors = FALSE)
+
+    tmp$ident <- Seurat::GetIdent(
+      seurat, uniq = FALSE, cells.use = rownames(tmp))
     return(tmp)
 }
 
@@ -98,9 +103,9 @@ forest
 
 df_importances <- as.data.frame(
   ranger::importance_pvalues(forest)[
-      ranger::importance_pvalues(forest)[,'pvalue']<0.05,])
+      ranger::importance_pvalues(forest)[, "pvalue"] < 0.05, ])
 
-head(df_importances[order(df_importances[, "importance"]),] )
+head(df_importances[order(df_importances[, "importance"]), ] )
 
 
 dim(df_importances)
@@ -114,21 +119,21 @@ dim(df_importances)
 
 # This add weihts to the clusters in proportion to the inverse of their abundance
 # TODO find a better way to calculate the weights ...
-weights_vars <- ceiling(as.numeric(100/table(pbmc_df$ident)))
+weights_vars <- ceiling(as.numeric(100 / table(pbmc_df$ident)))
 
 
 forest <- ranger::ranger(
   ident ~ ., data =  pbmc_df,
-  importance = "impurity_corrected", 
+  importance = "impurity_corrected",
   class.weights = weights_vars)
 
 forest
 
 df_importances <- as.data.frame(
   ranger::importance_pvalues(forest)[
-      ranger::importance_pvalues(forest)[,'pvalue']<0.05,])
+      ranger::importance_pvalues(forest)[, "pvalue"] < 0.05, ])
 
-head(df_importances[order(df_importances[, "importance"]),] )
+head(df_importances[order(df_importances[, "importance"]), ] )
 
 dim(df_importances)
 
@@ -138,15 +143,18 @@ Note that due to the nature of the random forest, it cannot be plotted ...
 but importances can
 
 ```{r}
-qplot(x = df_importances$importance, y = rownames(df_importances))
+ggplo2::qplot(x = df_importances$importance, y = rownames(df_importances))
 ```
 
 .... since factors are weird in R we need to reorder the levels for the plot to
 make sense ...
 
 ```{r}
-genes <- forcats::fct_reorder(rownames(df_importances), df_importances$importance)
-qplot(x = df_importances$importance, y = genes)
+genes <- forcats::fct_reorder(
+  rownames(df_importances),
+  df_importances$importance)
+
+ggplo2::qplot(x = df_importances$importance, y = genes)
 ```
 
 
@@ -154,18 +162,19 @@ qplot(x = df_importances$importance, y = genes)
 ## Packing all in a function
 
 ```{r}
-find_cluster_classification_forest <- function(cluster_id,
+find_cluster_classif_forest <- function(cluster_id,
                                                class_df,
-                                               markers, 
+                                               markers,
                                                report_n = 4) {
     print(paste0("Cluster: ", cluster_id))
-    foo2 <- markers %>% 
-        unique() %>%
-      {class_df[,colnames(class_df) %in% c(., 'ident')]}
-    
+    foo2 <- markers %>%
+        unique() %>% {
+          class_df[, colnames(class_df) %in% c(., "ident")]
+          }
+
     in_cluster <- foo2$ident == cluster_id
     out_cluster <- !in_cluster
-    
+
     num_outcluster <- sum(out_cluster)
     num_incluster <- sum(in_cluster)
 
@@ -174,35 +183,35 @@ find_cluster_classification_forest <- function(cluster_id,
     # This section alleviates slightly the problem when the cluster is extremely
     # small compared to the non-cluster points.
     # TODO  add a warning whenever this happens...
-    if (100 < (num_outcluster/num_incluster)) {
-      foo2 <- foo2[c(which(foo2$ident), 
-                     sample(which(!foo2$ident), num_incluster*100)), ]
+    if (100 < (num_outcluster / num_incluster)) {
+      foo2 <- foo2[c(which(foo2$ident),
+                     sample(which(!foo2$ident), num_incluster * 100)), ]
     }
-    
+
     foo2$ident <- factor(make.names(foo2$ident))
-        
+
     forest <- ranger::ranger(
-        ident ~ ., 
+        ident ~ .,
         data = foo2,
         importance = "impurity_corrected",
         num.trees = 2000)
 
     df_importances <- as.data.frame(
       ranger::importance_pvalues(forest))
-    
+
     df_importances$marker <- rownames(df_importances)
-    
-    markers <- dplyr::top_n(df_importances, report_n, importance)$marker  
+
+    markers <- dplyr::top_n(df_importances, report_n, `importance`)$marker
 
     return(
-      list(markers = markers, 
-           tree = forest, 
-           cluster = cluster_id, 
+      list(markers = markers,
+           tree = forest,
+           cluster = cluster_id,
            df_importances = df_importances))
 }
 
 
-tmp <- find_cluster_classification_forest(
+tmp <- find_cluster_classif_forest(
     cluster_id = "1",
     class_df = pbmc_df,
     markers = pbmc_small@var.genes,
@@ -216,10 +225,10 @@ lapply(tmp, summary)
 
 ```{r fig.height=3, fig.width=3}
 
-classif_info <- lapply(unique(pbmc_df$ident), 
-       function(x) find_cluster_classification_forest(
-         cluster_id = x, 
-         class_df = pbmc_df, 
+classif_info <- lapply(unique(pbmc_df$ident),
+       function(x) find_cluster_classif_forest(
+         cluster_id = x,
+         class_df = pbmc_df,
          markers = rownames(df_importances)))
 
 
@@ -227,12 +236,11 @@ classif_info <- lapply(unique(pbmc_df$ident),
 # is required because `FeaturePlot` uses the
 # original seurat object which still has the old names
 for (i in classif_info) {
-   i$markers %>% 
+   i$markers %>%
     plyr::mapvalues(
       from = newnames,
-      to = original_names, 
-      warn_missing = FALSE) %>%
-    {
+      to = original_names,
+      warn_missing = FALSE) %>% {
        for (marker in .) {
             FeaturePlot(
                 object = pbmc_small,
@@ -251,19 +259,32 @@ Note how this is A LOT more computationlly expensive than running single models
 
 
 ```{r}
-require(caret)
+
 tc <- caret::trainControl(method = "CV", number = 5)
-models <- caret::train(ident ~ ., data = pbmc_df, metod = "ranger", trControl = tc)
+
+models <- caret::train(
+    ident ~ .,
+    data = pbmc_df,
+    metod = "ranger",
+    trControl = tc)
+
 models
 
-varImp(models)
+caret::varImp(models)
 
-require(caret)
+
+## Now for a glmnet
 tc <- caret::trainControl(method = "CV", number = 5)
-models <- caret::train(ident ~ ., method = "glmnet", data = pbmc_df, trControl = tc)
+
+models <- caret::train(
+  ident ~ .,
+  method = "glmnet",
+  data = pbmc_df,
+  trControl = tc)
+
 models
 
-varImp(models)
+caret::varImp(models)
 ```
 
 
