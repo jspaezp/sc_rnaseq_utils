@@ -181,12 +181,53 @@ query_ab_antibodies <- function() {
 }
 
 
+#' Query Biolegend for antibodies
+#'
+#' Queries Biolegend for antibodies and 
+#' filters for antibodies for Flow Cytometry
+#' 
+#' Note that it is just a wrapper arround the web search of the site, so please 
+#' be nice on them and dont get your IP banned ...
+#' 
+#' @param search_term The term used to query the webpage
+#'
+#' @return a length 0 character when no results are found or a character vector with the product names
+#' @export
+#'
+#' @examples
+#' > query_biolegend_antibodies("CD11bfakename")
+#' NULL
+#' > head(query_biolegend_antibodies("CD11C"))
+#' [1] "MojoSortâ\u0084¢ Mouse CD11c Nanobeads" "APC anti-human CD11c Antibody"          "Biotin anti-human CD11c Antibody"
+#' [4] "FITC anti-human CD11c Antibody"         "PE anti-human CD11c Antibody"           "PE/Cy5 anti-human CD11c Antibody" 
+#' @importFrom rvest html_nodes html_table
+#' @importFrom xml2 read_html
+query_biolegend_antibodies <- function(search_term) {
+    url <- paste0("https://www.biolegend.com/en-us/search-results?Applications=FC&Keywords=",
+                  search_term)
+    
+    antibody_list <- rvest::html_nodes(
+        xml2::read_html(url), 
+        xpath='/html/body/div[1]/section/div/div/div/div/section/div/article/div[3]/ul[2]/li[*]/ul/li/h2/a')
+    
+    antibody_list <- rvest::html_text(antibody_list, trim = TRUE)
+    # The former will be a list of length 0 if no results are found
+    
+    return(antibody_list)
+}
+
+
+
+
 tests <- function() {
     query_cc_antibodies("CD11c")
     query_cc_antibodies("RB")
     
     head(query_sc_antibodies("CD11C"))
     head(query_sc_antibodies("RB"))
+    
+    query_biolegend_antibodies("CD11C")
+    query_biolegend_antibodies("RB")
 }
 
 

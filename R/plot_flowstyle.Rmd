@@ -1,6 +1,7 @@
 ---
 title: "Flow style plotting"
 output:
+  word_document: default
   html_document:
     keep_md: yes
 ---
