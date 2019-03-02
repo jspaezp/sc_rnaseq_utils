@@ -144,14 +144,11 @@ featureplot_gadget <- function(seurat_object = pbmc_small,
                                starting_genes = NULL) {
     
     plotting_pannel <- sidebarPanel(
-        h1("PLOT !"),
-        actionButton("plot_command", "PLOT!"),
-        h2("Functional Settings"),
+        h1("Plotting single cell data !"),
         uiOutput("allgenes"),
         actionButton("add_gene", "Add to plottable genes"),
         uiOutput("genes"),
-        h2("Aesthetic Settings"),
-        h3("Etc"),
+        actionButton("plot_command", "PLOT!"),
         checkboxInput(
             "hidelegends",
             "Hide Legends",
@@ -179,7 +176,7 @@ featureplot_gadget <- function(seurat_object = pbmc_small,
                     shiny::tabPanel(
                         "Find Markers", 
                         shiny::div(DT::dataTableOutput("rangerImpTable")),
-                        shiny::plotOutput("rangerPlot", height = '600px')),
+                        shiny::plotOutput("rangerImpPlot")),
                     shiny::tabPanel("TSNE plot", shiny::plotOutput("tsnePlot", height = '600px')),
                     shiny::tabPanel("Violin Plot", shiny::plotOutput("violinPlot", height = '600px')),
                     shiny::tabPanel("Pairs Plot", shiny::plotOutput("pairsPlot", height = '800px')))
@@ -209,6 +206,21 @@ featureplot_gadget <- function(seurat_object = pbmc_small,
         
         output$rangerImpTable <- DT::renderDataTable({
             importance_df
+        })
+        
+        output$rangerImpPlot <- shiny::renderPlot({
+            importance_df[["gene"]] <-  forcats::fct_reorder(
+                importance_df[["gene"]], 
+                importance_df[["importance"]])
+            
+            g <- ggplot2::ggplot(
+                importance_df, 
+                ggplot2::aes_string(x = "importance", xend = 0,
+                           y = "gene", yend = "gene")) + 
+                ggplot2::geom_point() + 
+                ggplot2::geom_segment() + 
+                ggplot2::ggtitle("Relative variable importance")
+            g
         })
 
         output$genes <- shiny::renderUI({
@@ -252,7 +264,7 @@ featureplot_gadget <- function(seurat_object = pbmc_small,
            captured_input()
        })
        
-       output$violinPlot <- renderCachedPlot({
+       output$violinPlot <- shiny::renderCachedPlot({
            capt_input <- captured_input()
            
            Seurat::VlnPlot(
@@ -263,7 +275,7 @@ featureplot_gadget <- function(seurat_object = pbmc_small,
            captured_input()
        })
        
-       output$pairsPlot <- renderCachedPlot({
+       output$pairsPlot <- shiny::renderCachedPlot({
            capt_input <- captured_input()
            
            plot.flowstyle(
